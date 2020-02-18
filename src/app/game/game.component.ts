@@ -1,10 +1,9 @@
 import {Component, OnInit} from '@angular/core';
 // @ts-ignore
 import Phaser from 'phaser';
-import {Level} from './types/level';
-import {Hero} from './hero';
-import {Spider} from './spider';
-import GameObject = Phaser.GameObjects.GameObject;
+import {Level} from '../types/level';
+import {Hero} from '../characters/hero';
+import {Spider} from '../characters/spider';
 
 @Component({
   selector: 'beo-game',
@@ -20,12 +19,11 @@ export class GameComponent extends Phaser.Scene implements OnInit {
   private enemyWalls: Phaser.GameObjects.Group;
   private coins: Phaser.GameObjects.Group;
   private spiders: Phaser.GameObjects.Group;
-  private spidersObj: Map<GameObject, Spider> = new Map<GameObject, Spider>();
   private bgDecoration: Phaser.GameObjects.Group;
   private hero: Hero;
 
-  // private level = 1;
-  private level = 0;
+  // private level = 0;
+  private level = 1;
   private hasKey: boolean;
   private initialCoinsNumber: number;
   private coinPickupCount: number;
@@ -91,7 +89,7 @@ export class GameComponent extends Phaser.Scene implements OnInit {
     this.load.spritesheet('icon:key', 'assets/images/key_icon.png', {frameWidth: 34, frameHeight: 30});
   }
 
-  initialize(data: Level) {
+  private initialize(data: Level) {
     this.hasKey = false;
     this.initialCoinsNumber = data && data.coins ? data.coins.length : 0;
     this.coinPickupCount = 0;
@@ -126,9 +124,7 @@ export class GameComponent extends Phaser.Scene implements OnInit {
   }
 
   private spidersHitBounds() {
-    for (const spider of this.spidersObj.values()) {
-      spider.hitBounds();
-    }
+    this.spiders.children.entries.forEach((spider: Spider) => spider.hitBounds());
   }
 
   private handleInputs() {
@@ -180,13 +176,13 @@ export class GameComponent extends Phaser.Scene implements OnInit {
   }
 
   private handleCollisions() {
-    this.physics.add.collider(this.hero.sprite, this.platforms);
-    this.physics.add.overlap(this.hero.sprite, this.coins, (hero, coin) => this.onHeroVsCoin(hero, coin), null, this);
+    this.physics.add.collider(this.hero, this.platforms);
+    this.physics.add.overlap(this.hero, this.coins, (hero, coin) => this.onHeroVsCoin(hero, coin), null, this);
     this.physics.add.collider(this.spiders, this.platforms);
-    this.physics.add.collider(this.spiders, this.enemyWalls, (spider, wall) => this.onSpiderVsEnemyWall(spider, wall));
-    this.physics.add.overlap(this.hero.sprite, this.spiders, (hero, spider) => this.onHeroVsEnemy(hero, spider), null, this);
-    this.physics.add.overlap(this.hero.sprite, this.key, (hero, key) => this.onHeroVsKey(hero, key), null, this);
-    this.physics.add.overlap(this.hero.sprite, this.door, (hero, door) => this.onHeroVsDoor(hero, door), null, this);
+    this.physics.add.collider(this.spiders, this.enemyWalls, (spider, wall) => this.onSpiderVsEnemyWall(spider as Spider, wall));
+    this.physics.add.overlap(this.hero, this.spiders, (hero, spider) => this.onHeroVsEnemy(hero, spider as Spider), null, this);
+    this.physics.add.overlap(this.hero, this.key, (hero, key) => this.onHeroVsKey(hero, key), null, this);
+    this.physics.add.overlap(this.hero, this.door, (hero, door) => this.onHeroVsDoor(hero, door), null, this);
   }
 
   private spawnPlatforms(data: Level) {
@@ -232,16 +228,11 @@ export class GameComponent extends Phaser.Scene implements OnInit {
   private spawnCharacters(data: Level) {
     // spawn hero
     const heroKey = 'hero';
-    this.hero = new Hero(this.physics.add.sprite(data.hero.x, data.hero.y, heroKey), this, heroKey);
+    this.hero = new Hero(this, data.hero.x, data.hero.y, heroKey);
 
     // spawn spiders
     const spiderKey = 'spider';
-
-    data.spiders.map(spider => new Spider(this.physics.add.sprite(spider.x, spider.y, spiderKey), this, spiderKey))
-      .forEach(x => this.spidersObj.set(x.sprite, x));
-    for (const value of this.spidersObj.values()) {
-      this.spiders.add(value.sprite, true);
-    }
+    this.spiders.addMultiple(data.spiders.map(spider => new Spider(this, spider.x, spider.y, spiderKey)), true);
   }
 
   private spawnKey(data: Level) {
@@ -273,15 +264,13 @@ export class GameComponent extends Phaser.Scene implements OnInit {
     this.coinPickupCount++;
   }
 
-  private onSpiderVsEnemyWall(spider: Phaser.GameObjects.GameObject, wall: Phaser.GameObjects.GameObject) {
-    this.spidersObj.get(spider).changeDirection();
+  private onSpiderVsEnemyWall(spider: Spider, wall: Phaser.GameObjects.GameObject) {
+    spider.changeDirection();
   }
 
-  private onHeroVsEnemy(hero: Phaser.GameObjects.GameObject, spider: Phaser.GameObjects.GameObject) {
-    this.spidersObj.get(spider).die(this.hero,
-      () => {
-        this.hero.bounce();
-      },
+  private onHeroVsEnemy(hero: Phaser.GameObjects.GameObject, spider: Spider) {
+    spider.die(this.hero,
+      () => this.hero.bounce(),
       () => {
         this.sound.play('sfx:stomp');
         this.scene.restart();
