@@ -2,8 +2,12 @@ import {Character} from './character';
 
 export class Hero extends Character {
 
-  constructor(scene: Phaser.Scene, x: number, y: number, texture: string, frame?: string | integer) {
-    super(scene, x, y, texture, frame);
+  private readonly SPEED = 200;
+  private readonly JUMP_SPEED = 600;
+  private readonly FLYING_SPEED = 200;
+
+  constructor(scene: Phaser.Scene, x: number, y: number, frame?: string | integer) {
+    super(scene, x, y, 'hero', frame);
   }
 
   protected initAnims(texture: string) {
@@ -37,8 +41,7 @@ export class Hero extends Character {
   }
 
   move(direction: -1 | 0 | 1) {
-    const SPEED = 200;
-    this.setVelocityX(direction * SPEED);
+    this.setVelocityX(direction * this.SPEED);
 
     if (direction !== 0) {
       this.anims.play(`run-${direction === 1 ? 'right' : 'left'}`, true);
@@ -47,15 +50,18 @@ export class Hero extends Character {
     }
   }
 
-  jump(): boolean {
-    const JUMP_SPEED = 600;
+  jump(flyAllowed: boolean = true): boolean {
     const canJump = this.body.touching.down;
 
     if (canJump) {
-      this.setVelocityY(-JUMP_SPEED);
+      this.setVelocityY(-this.JUMP_SPEED);
+      return true;
+    } else if (flyAllowed) {
+      this.setVelocityY(-this.FLYING_SPEED);
+      return true;
     }
 
-    return canJump;
+    return false;
   }
 
   bounce() {

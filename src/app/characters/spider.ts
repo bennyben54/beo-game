@@ -7,8 +7,8 @@ export class Spider extends Character {
   private direction = 1;
   private dying = false;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, texture: string, frame?: string | integer) {
-    super(scene, x, y, texture, frame);
+  constructor(scene: Phaser.Scene, x: number, y: number, frame?: string | integer) {
+    super(scene, x, y, 'spider', frame);
     this.initSprite();
   }
 
